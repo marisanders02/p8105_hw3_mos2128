@@ -6,8 +6,23 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
 library(p8105.datasets)
 ```
 
@@ -109,3 +124,18 @@ citi_bike_df %>%
 ```
 
 **Comment on Result**
+
+```{r}
+citi_bike_df %>% 
+  filter(month == "July" & year == "2024") %>% 
+  group_by(start_station_name) %>% 
+  summarize(count = n()) %>%  arrange(desc(count)) %>% head(5) %>% knitr::kable()
+```
+
+
+```{r}
+citi_bike_df %>%
+  mutate(weekdays = factor(weekdays, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),ordered = TRUE)) %>% 
+  group_by(year, month, weekdays) %>% 
+  mutate(median_duration = median(duration)) %>% ggplot(aes(x = weekdays, y = median_duration, fill = as.factor(year))) + geom_bar(stat = "identity", position = "dodge") + facet_grid(~month) + theme(axis.text = element_text(angle = 45, vjust = 1, hjust = 1))
+```
