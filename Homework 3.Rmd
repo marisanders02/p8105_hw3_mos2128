@@ -8,45 +8,104 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
-library(readxl)
 library(p8105.datasets)
-data("ny_noaa")
 ```
 
-
-## Problem 1 
+# Problem 1 
 
 ```{r}
-ny_noaa %>% 
+data("ny_noaa") 
+
+view(ny_noaa %>% 
   janitor::clean_names() %>% 
-  separate(date, into = c("year", "month", "day"), sep = "-") %>% 
-  mutate(tmax,  tmax = as.integer(tmax)) %>% 
-  mutate(tmin, tmin = as.integer(tmin))
+  separate(date, into = c("year", "month", "day"), sep = "-"))
 ```
 
-## Problem 2 
+# Problem 2 
 
 ```{r}
-demographic_df <- read_csv("data/nhanes_covar.csv", skip = 4) %>%
-  janitor::clean_names() %>% 
-  filter(age > 21) %>% 
-  filter(!is.na(bmi) & !is.na(age) & !is.na(education) & !is.na(sex))
+accel_df <- 
+  read_csv("data/nhanes_accel.csv") %>% 
+  janitor::clean_names() 
 
-accelerometer_df <- read_csv("data/nhanes_accel.csv") %>% 
-  janitor::clean_names()
+demographic_df <- read_csv("data/nhanes_covar.csv", skip = 4) %>% 
+  drop_na() %>% 
+  janitor::clean_names() %>%
+  filter(age > 21) %>%  
+  mutate(sex, sex = as.factor(sex)) %>% 
+  mutate(education, education = as.factor(education))
 
-combined_data <- 
-  left_join(demographic_df, accelerometer_df, by = "seqn") %>% 
-  pivot_longer(
-    cols = min1:min1440,
-    values_to = "accelerometer",
-    names_to = "minute",
-    names_prefix = "min"
-  )
-combined_data %>% 
-  count(sex) %>% distinct() %>% 
+demographic_accel_df <- 
+  left_join(demographic_df, accel_df, by = "seqn")
+```
+
+```{r}
+demographic_accel_df %>% 
+  group_by(sex, education) %>%
+  summarize(count = n()) %>% 
   knitr::kable()
-
-demographic_df %>% count(sex) 
 ```
 
+```{r}
+demographic_accel_df %>% 
+  group_by(sex, age, education) %>% 
+  ggplot(aes(x = age, color = sex)) + 
+  geom_histogram() + 
+  facet_grid(sex ~ education)
+```
+
+**Comment on Distribution**
+
+```{r}
+demographic_accel_df %>% 
+  mutate(total_activity = rowSums(select(., starts_with("min")))) %>% 
+  ggplot(aes(x = age, y = total_activity, color = sex)) + 
+  geom_point() + 
+  facet_grid(sex~education) + geom_smooth() 
+```
+
+**Comment on Distribution**
+
+```{r}
+demographic_accel_df %>% 
+  pivot_longer(
+    cols = min1:min1440, 
+    values_to = "data",
+    names_to = "minute", 
+    names_prefix = "min"
+  ) %>% ggplot(aes(x = minute, y = data, color = sex)) + geom_point() + facet_grid(~education)
+```
+
+# Problem 3 
+
+```{r}
+jan_2020 <- read_csv("data/Jan_2020_Citi.csv") %>% 
+  mutate(year = 2020) %>% 
+  mutate(month = "Jan") %>% 
+  relocate(year, month, .before = ride_id)
+jan_2024 <- read_csv("data/Jan_2024_Citi.csv") %>% 
+  mutate(year = 2024) %>% 
+  mutate(month = "Jan") %>% 
+  relocate(year, month, .before = ride_id)
+july_2020 <- read_csv("data/July_2020_Citi.csv") %>% 
+  mutate(year = 2020) %>% 
+  mutate(month = "July") %>% 
+  relocate(year, month, .before = ride_id)
+july_2024 <- read_csv("data/July_2024_Citi.csv") %>% 
+  mutate(year = 2024) %>% 
+  mutate(month = "July") %>% 
+  relocate(year, month, .before = ride_id)
+
+citi_bike_df <- 
+  bind_rows(jan_2020, july_2020, jan_2024, july_2024) 
+```
+
+
+```{r}
+citi_bike_df %>% 
+  group_by(year, month, member_casual) %>% 
+  summarize(count = n()) %>%
+  knitr::kable()
+```
+
+**Comment on Result**
