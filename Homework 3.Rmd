@@ -31,10 +31,26 @@ library(p8105.datasets)
 ```{r}
 data("ny_noaa") 
 
-view(ny_noaa %>% 
-  janitor::clean_names() %>% 
-  separate(date, into = c("year", "month", "day"), sep = "-"))
+noaa_df <- 
+  ny_noaa %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-") %>% 
+  
+  mutate(tmax, tmax = 10 * as.integer(tmax)) %>% 
+  mutate(tmin, tmin = 10 * as.integer(tmin)) %>%  
+  mutate(prcp, pcrp = 10 * as.integer(prcp))
+
+noaa_df %>% 
+  group_by(snow) %>% 
+  summarize(count = n())
 ```
+
+There is most commonly 0 mm of snow. This is because most days in NYC mostly doesn't snow. 
+
+
+```{r}
+noaa_df %>% ggplot(aes(x = tmax, y = tmin)) + geom_point()
+```
+
 
 # Problem 2 
 
@@ -88,7 +104,7 @@ demographic_accel_df %>%
     values_to = "data",
     names_to = "minute", 
     names_prefix = "min"
-  ) %>% ggplot(aes(x = minute, y = data, color = sex)) + geom_point() + facet_grid(~education)
+  ) %>% ggplot(aes(x = minute, y = data, color = sex)) + geom_point() + facet_grid(~education) + geom_smooth()
 ```
 
 # Problem 3 
@@ -123,7 +139,7 @@ citi_bike_df %>%
   knitr::kable()
 ```
 
-**Comment on Result**
+OVerall, there were a lot more users in 2024 than in 2020. The highest amount of rides was in July 2024. THe lowest amount of rides was January of 2020. 
 
 ```{r}
 citi_bike_df %>% 
@@ -135,7 +151,21 @@ citi_bike_df %>%
 
 ```{r}
 citi_bike_df %>%
-  mutate(weekdays = factor(weekdays, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),ordered = TRUE)) %>% 
+  mutate(weekdays = factor(weekdays, 
+                           levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), 
+                           ordered = TRUE)) %>% 
   group_by(year, month, weekdays) %>% 
   mutate(median_duration = median(duration)) %>% ggplot(aes(x = weekdays, y = median_duration, fill = as.factor(year))) + geom_bar(stat = "identity", position = "dodge") + facet_grid(~month) + theme(axis.text = element_text(angle = 45, vjust = 1, hjust = 1))
 ```
+
+The median duration is higher in July 2020 than any other time in this graph. There seem to typically be longer duration rides on Saturday and Sunday than any other days of the week. The duration overall is less in 2024 than it was in 2020. 
+
+```{r}
+citi_bike_df %>% 
+  group_by(month, member_casual, rideable_type, duration) %>% 
+  ggplot(aes(x = month, y = duration, fill = member_casual)) +
+  geom_boxplot() + 
+  facet_grid(~rideable_type)
+```
+
+There is into much of a difference between the classic bike and the electric bike. It does seem like the median duration is shorter for members rather than casual users.There are a lot of outliers in this dataset. There seems to be a larger range for the classic bike in both January and July, when compared with January and July for the electric bike. In January, for both the classic bike and the electric bike, they both had much smaller ranges. This seems to suggest that people are taking much shorter rides in January than in July. 
