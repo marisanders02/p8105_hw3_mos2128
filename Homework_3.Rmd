@@ -1,8 +1,8 @@
 ---
-title: "Homework_3"
+title: "Homework 3"
 author: "Mari Sanders"
 date: "2024-10-05"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -91,12 +91,14 @@ demographic_accel_df <-
   left_join(demographic_df, accel_df, by = "seqn")
 ```
 
+
 ```{r}
 demographic_accel_df %>% 
   group_by(sex, education) %>%
   summarize(count = n()) %>% 
   knitr::kable()
 ```
+
 
 ```{r}
 demographic_accel_df %>% 
@@ -189,4 +191,4 @@ citi_bike_df %>%
   facet_grid(~rideable_type)
 ```
 
-There is into much of a difference between the classic bike and the electric bike. It does seem like the median duration is shorter for members rather than casual users.There are a lot of outliers in this dataset. There seems to be a larger range for the classic bike in both January and July, when compared with January and July for the electric bike. In January, for both the classic bike and the electric bike, they both had much smaller ranges. This seems to suggest that people are taking much shorter rides in January than in July. 
+There is not much of a difference between the classic bike and the electric bike. It does seem like the median duration is shorter for members rather than casual users.There are a lot of outliers in this dataset. There seems to be a larger range for the classic bike in both January and July, when compared with January and July for the electric bike. In January, for both the classic bike and the electric bike, they both had much smaller ranges. This seems to suggest that people are taking much shorter rides in January than in July. 
