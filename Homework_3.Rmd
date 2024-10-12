@@ -1,0 +1,192 @@
+---
+title: "Homework_3"
+author: "Mari Sanders"
+date: "2024-10-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+library(p8105.datasets)
+```
+
+# Problem 1 
+
+```{r}
+data("ny_noaa") 
+
+noaa_df <- 
+  ny_noaa %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-") %>% 
+  
+  mutate(tmax, tmax = as.integer(tmax) / 10) %>% 
+  mutate(tmin, tmin = as.integer(tmin)/ 10) %>%  
+  mutate(prcp, pcrp = as.integer(prcp)/ 10)
+
+noaa_df %>% 
+  group_by(snow) %>% 
+  summarize(count = n())
+```
+
+There is most commonly 0 mm of snow. This is because most days in NYC mostly doesn't snow. 
+
+
+```{r}
+noaa_df %>% 
+  filter(month == "01" | month == "07") %>%  
+  drop_na(tmax) %>%                           
+  group_by(id, year, month) %>%               
+  summarize(mean_tmax = mean(tmax, na.rm = TRUE), .group = "none") %>%  
+   ggplot(aes(x = year, y = mean_tmax, color = id)) +
+   geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(~month) + theme(legend.position = "none") + theme(axis.text = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+The temperature in July seems to be much more predicable, with less range in the average maximum temperature. There seems to be a max temperature in 1982 that is extremely low compared to the other data. Additionally, in 2005, there was another average temperature in January that was a lot lower than the other data. 
+
+```{r}
+noaa_df %>% 
+  ggplot(aes(x = tmax, y = tmin)) + 
+  geom_point()
+
+noaa_df %>% 
+  group_by(year, snow) %>% 
+  filter(snow > 0 | snow < 100) %>% 
+  ggplot(aes(x = year, y = snow)) + geom_bar(stat = "identity", position = "dodge") 
+
+```
+
+
+# Problem 2 
+
+```{r}
+accel_df <- 
+  read_csv("data/nhanes_accel.csv") %>% 
+  janitor::clean_names() 
+
+demographic_df <- read_csv("data/nhanes_covar.csv", skip = 4) %>% 
+  drop_na() %>% 
+  janitor::clean_names() %>%
+  filter(age > 21) %>%  
+  mutate(sex, sex = as.factor(sex)) %>% 
+  mutate(education, education = as.factor(education))
+
+demographic_accel_df <- 
+  left_join(demographic_df, accel_df, by = "seqn")
+```
+
+```{r}
+demographic_accel_df %>% 
+  group_by(sex, education) %>%
+  summarize(count = n()) %>% 
+  knitr::kable()
+```
+
+```{r}
+demographic_accel_df %>% 
+  group_by(sex, age, education) %>% 
+  ggplot(aes(x = age, color = as.factor(sex))) + 
+  geom_boxplot() + 
+  facet_grid(~education)
+```
+
+The only age that is quite different is for education level 2. For females, the median age is a lot higher median age for males. Other than that, most of the ages are similar. All the distributions seem slightly skewed. 
+
+```{r}
+demographic_accel_df %>% 
+  mutate(total_activity = rowSums(select(., starts_with("min")))) %>% 
+  ggplot(aes(x = age, y = total_activity, color = sex)) + 
+  geom_point() + 
+  facet_grid(sex~education) + geom_smooth(se = FALSE) 
+```
+
+Across all education levels, sexes, and ages, as age increases, total activity decreases. For Females with education = 2, there seems to be a nonlinear relationship in the data. The other graphs could be able to be explained using a linear model, but further testing is needed. 
+
+```{r}
+demographic_accel_df %>% 
+  pivot_longer(
+    cols = min1:min1440, 
+    values_to = "data",
+    names_to = "minute", 
+    names_prefix = "min"
+  ) %>% ggplot(aes(x = minute, y = data, color = sex)) + geom_point() + facet_grid(~education) + geom_smooth()
+```
+
+# Problem 3 
+
+```{r}
+jan_2020 <- read_csv("data/Jan_2020_Citi.csv") %>% 
+  mutate(year = 2020) %>% 
+  mutate(month = "Jan") %>% 
+  relocate(year, month, .before = ride_id)
+jan_2024 <- read_csv("data/Jan_2024_Citi.csv") %>% 
+  mutate(year = 2024) %>% 
+  mutate(month = "Jan") %>% 
+  relocate(year, month, .before = ride_id)
+july_2020 <- read_csv("data/July_2020_Citi.csv") %>% 
+  mutate(year = 2020) %>% 
+  mutate(month = "July") %>% 
+  relocate(year, month, .before = ride_id)
+july_2024 <- read_csv("data/July_2024_Citi.csv") %>% 
+  mutate(year = 2024) %>% 
+  mutate(month = "July") %>% 
+  relocate(year, month, .before = ride_id)
+
+citi_bike_df <- 
+  bind_rows(jan_2020, july_2020, jan_2024, july_2024) 
+```
+
+
+```{r}
+citi_bike_df %>% 
+  group_by(year, month, member_casual) %>% 
+  summarize(count = n()) %>%
+  knitr::kable()
+```
+
+OVerall, there were a lot more users in 2024 than in 2020. The highest amount of rides was in July 2024. THe lowest amount of rides was January of 2020. 
+
+```{r}
+citi_bike_df %>% 
+  filter(month == "July" & year == "2024") %>% 
+  group_by(start_station_name) %>% 
+  summarize(count = n()) %>%  arrange(desc(count)) %>% head(5) %>% knitr::kable()
+```
+
+
+```{r}
+citi_bike_df %>%
+  mutate(weekdays = factor(weekdays, 
+                           levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), 
+                           ordered = TRUE)) %>% 
+  group_by(year, month, weekdays) %>% 
+  mutate(median_duration = median(duration)) %>% ggplot(aes(x = weekdays, y = median_duration, fill = as.factor(year))) + geom_bar(stat = "identity", position = "dodge") + facet_grid(~month) + theme(axis.text = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+The median duration is higher in July 2020 than any other time in this graph. There seem to typically be longer duration rides on Saturday and Sunday than any other days of the week. The duration overall is less in 2024 than it was in 2020. 
+
+```{r}
+citi_bike_df %>% 
+  group_by(month, member_casual, rideable_type, duration) %>% 
+  ggplot(aes(x = month, y = duration, fill = member_casual)) +
+  geom_boxplot() + 
+  facet_grid(~rideable_type)
+```
+
+There is into much of a difference between the classic bike and the electric bike. It does seem like the median duration is shorter for members rather than casual users.There are a lot of outliers in this dataset. There seems to be a larger range for the classic bike in both January and July, when compared with January and July for the electric bike. In January, for both the classic bike and the electric bike, they both had much smaller ranges. This seems to suggest that people are taking much shorter rides in January than in July. 

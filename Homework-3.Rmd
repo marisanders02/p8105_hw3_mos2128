@@ -35,9 +35,9 @@ noaa_df <-
   ny_noaa %>% 
   separate(date, into = c("year", "month", "day"), sep = "-") %>% 
   
-  mutate(tmax, tmax = 10 * as.integer(tmax)) %>% 
-  mutate(tmin, tmin = 10 * as.integer(tmin)) %>%  
-  mutate(prcp, pcrp = 10 * as.integer(prcp))
+  mutate(tmax, tmax = as.integer(tmax) / 10) %>% 
+  mutate(tmin, tmin = as.integer(tmin)/ 10) %>%  
+  mutate(prcp, pcrp = as.integer(prcp)/ 10)
 
 noaa_df %>% 
   group_by(snow) %>% 
@@ -48,7 +48,32 @@ There is most commonly 0 mm of snow. This is because most days in NYC mostly doe
 
 
 ```{r}
-noaa_df %>% ggplot(aes(x = tmax, y = tmin)) + geom_point()
+noaa_df %>% 
+  filter(month == "01" | month == "07") %>%  
+  drop_na(tmax) %>%                           
+  group_by(id, year, month) %>%               
+  summarize(mean_tmax = mean(tmax, na.rm = TRUE), .group = "none") %>%  
+   ggplot(aes(x = year, y = mean_tmax, color = id)) +
+   geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(~month) + theme(legend.position = "none") + theme(axis.text = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+The temperature in July seems to be much more predicable, with less range in the average maximum temperature. There seems to be a max temperature in 1982 that is extremely low compared to the other data. Additionally, in 2005, there was another average temperature in January that was a lot lower than the other data. 
+
+```{r}
+tmax_vs_tmin <- 
+  noaa_df %>% 
+  ggplot(aes(x = tmax, y = tmin)) + 
+  geom_point()
+
+snow <- 
+  noaa_df %>% 
+  group_by(year, snow) %>% 
+  filter(snow > 0 | snow < 100) %>% 
+  ggplot(aes(x = year, y = snow)) + geom_bar(stat = "identity", position = "dodge") 
+
+
+
 ```
 
 
@@ -80,22 +105,22 @@ demographic_accel_df %>%
 ```{r}
 demographic_accel_df %>% 
   group_by(sex, age, education) %>% 
-  ggplot(aes(x = age, color = sex)) + 
-  geom_histogram() + 
-  facet_grid(sex ~ education)
+  ggplot(aes(x = age, color = as.factor(sex))) + 
+  geom_boxplot() + 
+  facet_grid(~education)
 ```
 
-**Comment on Distribution**
+The only age that is quite different is for education level 2. For females, the median age is a lot higher median age for males. Other than that, most of the ages are similar. All the distributions seem slightly skewed. 
 
 ```{r}
 demographic_accel_df %>% 
   mutate(total_activity = rowSums(select(., starts_with("min")))) %>% 
   ggplot(aes(x = age, y = total_activity, color = sex)) + 
   geom_point() + 
-  facet_grid(sex~education) + geom_smooth() 
+  facet_grid(sex~education) + geom_smooth(se = FALSE) 
 ```
 
-**Comment on Distribution**
+Across all education levels, sexes, and ages, as age increases, total activity decreases. For Females with education = 2, there seems to be a nonlinear relationship in the data. The other graphs could be able to be explained using a linear model, but further testing is needed. 
 
 ```{r}
 demographic_accel_df %>% 
