@@ -71,13 +71,12 @@ snow <-
   group_by(year, snow) %>% 
   filter(snow > 0 | snow < 100) %>% 
   ggplot(aes(x = year, y = snow)) + geom_bar(stat = "identity", position = "dodge") 
-
-
-
 ```
 
 
 # Problem 2 
+
+**Cleaning and Merging the Data**
 
 ```{r}
 accel_df <- 
@@ -88,19 +87,25 @@ demographic_df <- read_csv("data/nhanes_covar.csv", skip = 4) %>%
   drop_na() %>% 
   janitor::clean_names() %>%
   filter(age > 21) %>%  
-  mutate(sex, sex = as.factor(sex)) %>% 
+  mutate(sex, sex = factor(sex, levels = c(1,2), labels = c("Male", "Female"))) %>% 
   mutate(education, education = as.factor(education))
 
 demographic_accel_df <- 
   left_join(demographic_df, accel_df, by = "seqn")
 ```
 
+**Making  Readable Table**
+
 ```{r}
 demographic_accel_df %>% 
   group_by(sex, education) %>%
-  summarize(count = n()) %>% 
-  knitr::kable()
+  summarize(count = n())  %>%
+  pivot_wider(names_from = sex, values_from = count) %>% knitr::kable()
 ```
+
+The most popular education level is 3. Both the male and female totals are higher for this education level than any other education level. The least popular education level is 1. Both male and female totals are lower in this education level than any other education level. 
+
+**Creating age distributions for men and women in each category**
 
 ```{r}
 demographic_accel_df %>% 
@@ -112,27 +117,46 @@ demographic_accel_df %>%
 
 The only age that is quite different is for education level 2. For females, the median age is a lot higher median age for males. Other than that, most of the ages are similar. All the distributions seem slightly skewed. 
 
+**Plot of Total Age Against Total Activity**
+
 ```{r}
 demographic_accel_df %>% 
   mutate(total_activity = rowSums(select(., starts_with("min")))) %>% 
   ggplot(aes(x = age, y = total_activity, color = sex)) + 
   geom_point() + 
-  facet_grid(sex~education) + geom_smooth(se = FALSE) 
+  facet_grid(sex~education) + geom_smooth(se = FALSE) + 
+  labs(
+    x = "Age",
+    y = "Total Activity",
+    title = "Age vs. Total Activity by Sex"
+  )
 ```
 
-Across all education levels, sexes, and ages, as age increases, total activity decreases. For Females with education = 2, there seems to be a nonlinear relationship in the data. The other graphs could be able to be explained using a linear model, but further testing is needed. 
+Across all education levels, sexes, and ages, as age increases, total activity decreases. For females with education = 2, there seems to be a nonlinear relationship in the data. 
+
+**24-Hour Activity Time Courses for Each Education Level by Sex**
 
 ```{r}
 demographic_accel_df %>% 
   pivot_longer(
     cols = min1:min1440, 
-    values_to = "data",
+    values_to = "activity",
     names_to = "minute", 
     names_prefix = "min"
-  ) %>% ggplot(aes(x = minute, y = data, color = sex)) + geom_point() + facet_grid(~education) + geom_smooth()
+  ) %>% ggplot(aes(x = as.numeric(minute), y = activity, color = sex)) + geom_point() + geom_smooth(color = "red") +  facet_grid(~education) + 
+  labs(
+    x = "Minute", 
+    y = "Activity", 
+    title = "24 hr Activity by Education Level and Sex"
+  ) + 
+  theme(axis.text = element_text(angle = 45, vjust = 1, hjust = 1))
 ```
 
+Across all education levels, there seem to be highs and lows in the graphs, which seem to correspond to people being awake and people being asleep. There are low levels of activity during the night and morning hours. The activity patterns seem to be similar across education levels. Education = 3 has much higher variation. There seems to be a similar pattern based on sex as well. For females, there are is a bit higher activity compared to males, especially during the middle part of the day. There seems to be less variability/lower activity among males. 
+
 # Problem 3 
+
+**Cleaning and Joining Data**
 
 ```{r}
 jan_2020 <- read_csv("data/Jan_2020_Citi.csv") %>% 
@@ -156,15 +180,25 @@ citi_bike_df <-
   bind_rows(jan_2020, july_2020, jan_2024, july_2024) 
 ```
 
+The data includes `r nrow(citi_bike_df)` rows and `r ncol(citi_bike_df)` columns. The variables included are `r names(citi_bike_df)`. The only things I did to the datasets before I combined them was adding the year and month of each observation and relocated the dates to be the first two columns of the data set. I then used `bind_rows` to combine them because every `join` function created separate columns instead of adding them to the end of the first dataset. 
+
+
+**Total Number of Rides in Each Year and Month by Rider Type**
 
 ```{r}
 citi_bike_df %>% 
   group_by(year, month, member_casual) %>% 
-  summarize(count = n()) %>%
+  summarize(count = n()) %>% 
+  pivot_wider(
+    names_from = member_casual,
+    values_from = count
+  ) %>% 
   knitr::kable()
 ```
 
-OVerall, there were a lot more users in 2024 than in 2020. The highest amount of rides was in July 2024. THe lowest amount of rides was January of 2020. 
+Overall, there were a lot more users in 2024 than in 2020. The highest amount of rides was in July 2024. The lowest amount of rides was January of 2020 and the highest amount of rides was in July 2024. 
+
+**5 Most Popular Starting Stations in July 2024**
 
 ```{r}
 citi_bike_df %>% 
@@ -173,6 +207,9 @@ citi_bike_df %>%
   summarize(count = n()) %>%  arrange(desc(count)) %>% head(5) %>% knitr::kable()
 ```
 
+The most popular starting stations in July 2024 is Pier 61 at Chelsea Piers, University Pl & E 14 St., W 21 St. & 6 Ave, West St & Chambers St, and W 31 & 7 Ave. 
+
+**Effects of Weekday, Month and Year on Median Ride Duration**
 
 ```{r}
 citi_bike_df %>%
@@ -180,10 +217,12 @@ citi_bike_df %>%
                            levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"), 
                            ordered = TRUE)) %>% 
   group_by(year, month, weekdays) %>% 
-  mutate(median_duration = median(duration)) %>% ggplot(aes(x = weekdays, y = median_duration, fill = as.factor(year))) + geom_bar(stat = "identity", position = "dodge") + facet_grid(~month) + theme(axis.text = element_text(angle = 45, vjust = 1, hjust = 1))
+  mutate(median_duration = median(duration)) %>% ggplot(aes(x = weekdays, y = median_duration, color = as.factor(year))) + geom_point() + facet_grid(~month) + theme(axis.text = element_text(angle = 45, vjust = 1, hjust = 1))
 ```
 
 The median duration is higher in July 2020 than any other time in this graph. There seem to typically be longer duration rides on Saturday and Sunday than any other days of the week. The duration overall is less in 2024 than it was in 2020. 
+
+**Plot of Impact on Month, Membership Status, and Bike Type on Ride Duration**
 
 ```{r}
 citi_bike_df %>% 

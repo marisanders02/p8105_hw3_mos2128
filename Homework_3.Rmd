@@ -75,6 +75,8 @@ noaa_df %>%
 
 # Problem 2 
 
+Cleaning and Joining the datasets
+
 ```{r}
 accel_df <- 
   read_csv("data/nhanes_accel.csv") %>% 
@@ -104,7 +106,7 @@ demographic_accel_df %>%
 demographic_accel_df %>% 
   group_by(sex, age, education) %>% 
   ggplot(aes(x = age, color = as.factor(sex))) + 
-  geom_boxplot() + 
+  geom_plot() + 
   facet_grid(~education)
 ```
 
@@ -127,8 +129,16 @@ demographic_accel_df %>%
     values_to = "data",
     names_to = "minute", 
     names_prefix = "min"
-  ) %>% ggplot(aes(x = minute, y = data, color = sex)) + geom_point() + facet_grid(~education) + geom_smooth()
+  ) %>% ggplot(aes(x = minute, y = data, color = sex)) + geom_point(alpha = 0.3) + geom_smooth() + facet_grid(~education) + theme(axis.text = element_text(angle = 45, vjust = 1, hjust = 1)) + 
+  labs(
+    title = "Activity by Education Level and Sex", 
+    x = "Minute", 
+    y = "Activity",
+    color = "Sex"
+  )
 ```
+
+The activity seems consistent across education levels. There seem to be low activity during the night and morning, corresponding to sleeping. The activity increases throughout the day. Education level 1 shows denser activity throughout the day, while education level = 3 has higher peaks. Both sexes seem to have similar daily patterns. Sex = 2 has slightly higher activity peaks compared to sex = 1. 
 
 # Problem 3 
 
