@@ -1,9 +1,10 @@
 ---
 title: "Homework 3"
 author: "Mari Sanders"
-date: "2024-10-05"
-output: html_document
+output: github_document
 ---
+
+Using the `p8105 datasets` and `tidyverse` packages
 
 ```{r setup, include=FALSE}
 library(tidyverse)
@@ -232,4 +233,4 @@ citi_bike_df %>%
   facet_grid(~rideable_type)
 ```
 
-There is into much of a difference between the classic bike and the electric bike. It does seem like the median duration is shorter for members rather than casual users.There are a lot of outliers in this dataset. There seems to be a larger range for the classic bike in both January and July, when compared with January and July for the electric bike. In January, for both the classic bike and the electric bike, they both had much smaller ranges. This seems to suggest that people are taking much shorter rides in January than in July. 
+There is not much of a difference between the classic bike and the electric bike. It does seem like the median duration is shorter for members rather than casual users.There are a lot of outliers in this dataset. There seems to be a larger range for the classic bike in both January and July, when compared with January and July for the electric bike. In January, for both the classic bike and the electric bike, they both had much smaller ranges. This seems to suggest that people are taking much shorter rides in January than in July. 
